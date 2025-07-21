@@ -25,6 +25,10 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
     setError('')
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase is not configured')
+      }
+
       if (isLogin) {
         // Login existing user
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -63,6 +67,10 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
     setError('')
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase is not configured')
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

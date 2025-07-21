@@ -56,6 +56,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Get initial session
     const getInitialSession = async () => {
+      if (!supabase) {
+        setLoading(false)
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       setSession(session)
       setUser(session?.user || null)
@@ -65,6 +69,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     getInitialSession()
 
     // Listen for auth changes
+    if (!supabase) {
+      return () => {}
+    }
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session)

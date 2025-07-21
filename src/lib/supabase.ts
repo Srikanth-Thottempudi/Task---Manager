@@ -15,6 +15,15 @@ export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl!, supabaseAnonKey!)
   : null
 
+// Define the structure of our categories table
+export interface Category {
+  id: string
+  name: string
+  color: string
+  description?: string
+  created_at: string
+}
+
 // Define the structure of our tasks table
 export interface Task {
   id: string
@@ -24,12 +33,22 @@ export interface Task {
   priority: 'low' | 'medium' | 'high'
   assignee: string
   due_date: string
+  category_id?: string
+  category?: Category
   created_at: string
   updated_at: string
 }
 
 // Local storage fallback functions
 const localStorageService = {
+  async getAllCategories() {
+    const categories = localStorage.getItem('categories')
+    return categories ? JSON.parse(categories) : [
+      { id: '1', name: 'Work', color: '#3B82F6', description: 'Work-related tasks', created_at: new Date().toISOString() },
+      { id: '2', name: 'Personal', color: '#10B981', description: 'Personal tasks', created_at: new Date().toISOString() }
+    ]
+  },
+
   async getAllTasks() {
     const tasks = localStorage.getItem('tasks')
     return tasks ? JSON.parse(tasks) : []
@@ -68,14 +87,36 @@ const localStorageService = {
 }
 
 // Database functions
+export const categoryService = {
+  // Get all categories
+  async getAllCategories() {
+    if (!supabase) return localStorageService.getAllCategories()
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name', { ascending: true })
+    
+    if (error) {
+      console.error('Error fetching categories:', error)
+      return localStorageService.getAllCategories()
+    }
+    
+    return data || []
+  }
+}
+
 export const taskService = {
-  // Get all tasks
+  // Get all tasks with categories
   async getAllTasks() {
     if (!supabase) return localStorageService.getAllTasks()
     
     const { data, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select(`
+        *,
+        category:categories(*)
+      `)
       .order('created_at', { ascending: false })
     
     if (error) {

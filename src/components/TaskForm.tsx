@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { Calendar } from "lucide-react"
+import { categoryService, Category } from "@/lib/supabase"
 
 // This defines what data we need to create a new task
 interface TaskFormData {
@@ -16,6 +18,7 @@ interface TaskFormData {
   priority: 'low' | 'medium' | 'high'
   assignee: string
   dueDate: string
+  categoryId: string
 }
 
 // This defines what props our TaskForm component accepts
@@ -32,8 +35,29 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
     status: 'todo',
     priority: 'medium',
     assignee: '',
-    dueDate: ''
+    dueDate: '',
+    categoryId: 'none'
   })
+
+  // State for categories
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
+
+  // Load categories when component mounts
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const fetchedCategories = await categoryService.getAllCategories()
+        setCategories(fetchedCategories)
+      } catch (error) {
+        console.error('Failed to load categories:', error)
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+
+    loadCategories()
+  }, [])
 
   // Function to handle form submission
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,7 +79,8 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
       status: 'todo',
       priority: 'medium',
       assignee: '',
-      dueDate: ''
+      dueDate: '',
+      categoryId: 'none'
     })
   }
 
@@ -68,15 +93,15 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Create New Task</CardTitle>
+    <Card className="w-full max-w-md mobile-optimized">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg sm:text-xl">Create New Task</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Title Input */}
           <div>
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="title" className="text-sm font-medium">Title *</Label>
             <Input
               id="title"
               type="text"
@@ -84,18 +109,22 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
               value={formData.title}
               onChange={(e) => updateFormData('title', e.target.value)}
               required
+              className="mobile-optimized touch-target mt-1"
+              style={{ fontSize: '16px' }}
             />
           </div>
 
           {/* Description Textarea */}
           <div>
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className="text-sm font-medium">Description</Label>
             <Textarea
               id="description"
               placeholder="Describe the task..."
               value={formData.description}
               onChange={(e) => updateFormData('description', e.target.value)}
               rows={3}
+              className="mobile-optimized touch-target mt-1 resize-none"
+              style={{ fontSize: '16px' }}
             />
           </div>
 
@@ -103,7 +132,7 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
           <div>
             <Label htmlFor="status">Status</Label>
             <Select value={formData.status} onValueChange={(value) => updateFormData('status', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="mobile-optimized touch-target" style={{ fontSize: '16px' }}>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -118,7 +147,7 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
           <div>
             <Label htmlFor="priority">Priority</Label>
             <Select value={formData.priority} onValueChange={(value) => updateFormData('priority', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="mobile-optimized touch-target" style={{ fontSize: '16px' }}>
                 <SelectValue placeholder="Select priority" />
               </SelectTrigger>
               <SelectContent>
@@ -129,9 +158,39 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
             </Select>
           </div>
 
+          {/* Category Select */}
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Select value={formData.categoryId} onValueChange={(value) => updateFormData('categoryId', value)}>
+              <SelectTrigger className="mobile-optimized touch-target" style={{ fontSize: '16px' }}>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {loadingCategories ? (
+                  <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                ) : (
+                  <>
+                    <SelectItem value="none">No category</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Assignee Input */}
           <div>
-            <Label htmlFor="assignee">Assignee *</Label>
+            <Label htmlFor="assignee" className="text-sm font-medium">Assignee *</Label>
             <Input
               id="assignee"
               type="text"
@@ -139,28 +198,45 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
               value={formData.assignee}
               onChange={(e) => updateFormData('assignee', e.target.value)}
               required
+              className="mobile-optimized touch-target mt-1"
+              style={{ fontSize: '16px' }}
             />
           </div>
 
           {/* Due Date Input */}
           <div>
-            <Label htmlFor="dueDate">Due Date *</Label>
+            <Label htmlFor="dueDate" className="flex items-center gap-2 text-sm font-medium">
+              <Calendar className="h-4 w-4" />
+              Due Date *
+            </Label>
             <Input
               id="dueDate"
               type="date"
               value={formData.dueDate}
               onChange={(e) => updateFormData('dueDate', e.target.value)}
               required
+              className="mobile-optimized touch-target mt-1 [&::-webkit-calendar-picker-indicator]:dark:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              style={{ fontSize: '16px' }}
             />
           </div>
 
           {/* Form Buttons */}
-          <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-2 pt-4">
+            <Button 
+              type="submit" 
+              className="flex-1 touch-target"
+              style={{ minHeight: '44px' }}
+            >
               Create Task
             </Button>
             {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onCancel}
+                className="touch-target"
+                style={{ minHeight: '44px' }}
+              >
                 Cancel
               </Button>
             )}

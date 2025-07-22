@@ -39,15 +39,31 @@ export function DraggableTaskCard({ task, onDelete }: DraggableTaskCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className="group relative cursor-grab active:cursor-grabbing touch-manipulation select-none hover:scale-[1.02] transition-all duration-300 active:scale-[0.98] hover:shadow-xl hover:shadow-primary/10"
+      className={`group relative cursor-grab active:cursor-grabbing touch-manipulation select-none transition-all duration-300 ${
+        typeof window !== 'undefined' && window.innerWidth < 768
+          ? 'hover:scale-[1.01] active:scale-[0.99] hover:shadow-lg'
+          : 'hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/10'
+      }`}
     >
-      {/* Enhanced mobile-optimized drag handle indicator */}
-      <div className="absolute left-2 top-1/2 -translate-y-1/2 opacity-40 group-hover:opacity-80 transition-all duration-300 z-10 group-active:opacity-100">
+      {/* Mobile-optimized drag handle indicator */}
+      <div className={`absolute top-1/2 -translate-y-1/2 transition-all duration-300 z-10 ${
+        typeof window !== 'undefined' && window.innerWidth < 768
+          ? 'left-1 opacity-60 group-active:opacity-100'
+          : 'left-2 opacity-40 group-hover:opacity-80 group-active:opacity-100'
+      }`}>
         <div className="flex flex-col gap-1">
-          <div className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-pulse" style={{animationDelay: '0ms'}}></div>
-          <div className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-pulse" style={{animationDelay: '200ms'}}></div>
-          <div className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-pulse" style={{animationDelay: '400ms'}}></div>
-          <div className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-pulse" style={{animationDelay: '600ms'}}></div>
+          <div className={`bg-muted-foreground/60 rounded-full animate-pulse ${
+            typeof window !== 'undefined' && window.innerWidth < 768 ? 'w-2 h-2' : 'w-1.5 h-1.5'
+          }`} style={{animationDelay: '0ms'}}></div>
+          <div className={`bg-muted-foreground/60 rounded-full animate-pulse ${
+            typeof window !== 'undefined' && window.innerWidth < 768 ? 'w-2 h-2' : 'w-1.5 h-1.5'
+          }`} style={{animationDelay: '200ms'}}></div>
+          <div className={`bg-muted-foreground/60 rounded-full animate-pulse ${
+            typeof window !== 'undefined' && window.innerWidth < 768 ? 'w-2 h-2' : 'w-1.5 h-1.5'
+          }`} style={{animationDelay: '400ms'}}></div>
+          <div className={`bg-muted-foreground/60 rounded-full animate-pulse ${
+            typeof window !== 'undefined' && window.innerWidth < 768 ? 'w-2 h-2' : 'w-1.5 h-1.5'
+          }`} style={{animationDelay: '600ms'}}></div>
         </div>
       </div>
       

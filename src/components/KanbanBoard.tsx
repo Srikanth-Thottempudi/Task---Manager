@@ -69,17 +69,17 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     }
   }, [])
   
-  // Balanced drag sensitivity - not too fast, not too slow
+  // Mobile-optimized drag sensitivity
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Slightly more distance for controlled start
+        distance: 5, // Shorter distance for better mobile response
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 180, // Balanced delay for mobile
-        tolerance: 8, // More forgiving tolerance
+        delay: 250, // Longer delay to prevent conflicts with scrolling
+        tolerance: 15, // Much more forgiving for finger touch
       },
     }),
     useSensor(KeyboardSensor, {
@@ -87,22 +87,40 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     })
   )
 
-  // Enhanced collision detection for seamless drag experience
+  // Mobile-optimized collision detection
   const collisionDetection = (args: any) => {
-    // First, try pointer within for immediate feedback
-    const pointerCollisions = pointerWithin(args)
-    if (pointerCollisions.length > 0) {
-      return pointerCollisions
-    }
+    // For mobile, use more forgiving collision detection
+    const isMobile = window.innerWidth < 768
     
-    // Then use rectangle intersection for broader targeting
-    const rectCollisions = rectIntersection(args)
-    if (rectCollisions.length > 0) {
-      return rectCollisions
+    if (isMobile) {
+      // On mobile, prioritize rectangle intersection for larger target areas
+      const rectCollisions = rectIntersection(args)
+      if (rectCollisions.length > 0) {
+        return rectCollisions
+      }
+      
+      // Then try closest center for easier targeting
+      const centerCollisions = closestCenter(args)
+      if (centerCollisions.length > 0) {
+        return centerCollisions
+      }
+      
+      // Finally, pointer within
+      return pointerWithin(args)
+    } else {
+      // Desktop: More precise targeting
+      const pointerCollisions = pointerWithin(args)
+      if (pointerCollisions.length > 0) {
+        return pointerCollisions
+      }
+      
+      const rectCollisions = rectIntersection(args)
+      if (rectCollisions.length > 0) {
+        return rectCollisions
+      }
+      
+      return closestCenter(args)
     }
-    
-    // Finally, fall back to closest center for edge cases
-    return closestCenter(args)
   }
 
   // Define our columns
@@ -201,11 +219,52 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
       onDragMove={handleAutoScroll}
       onDragEnd={handleDragEnd}
     >
-      <div ref={scrollContainerRef} className="flex flex-col space-y-6 sm:grid sm:grid-cols-1 md:grid-cols-3 sm:gap-4 md:gap-6 sm:space-y-0 max-h-screen overflow-y-auto scroll-smooth px-4 sm:px-0">
-        {columns.map(column => (
-          <div key={column.id} className="flex flex-col min-h-[400px] sm:min-h-[500px]">
-            <Card className="flex-1">
-              <CardHeader className="pb-2 sm:pb-3">
+      <div ref={scrollContainerRef} className="w-full max-h-screen overflow-y-auto scroll-smooth">
+        {/* Mobile: Vertical Stack */}
+        <div className="flex flex-col space-y-4 px-4 md:hidden">
+          {columns.map(column => (
+            <div key={`mobile-${column.id}`} className="w-full">
+              <Card className="w-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${
+                        column.status === 'todo' ? 'bg-red-400' :
+                        column.status === 'in-progress' ? 'bg-yellow-400' :
+                        'bg-green-400'
+                      }`} />
+                      <span className="font-medium">{column.title}</span>
+                    </div>
+                    <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full min-w-[24px] text-center">
+                      {getTasksForColumn(column.status).length}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DroppableColumn id={column.status}>
+                    <SortableContext
+                      items={getTasksForColumn(column.status).map(task => task.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="min-h-[200px] space-y-3 p-3 rounded-lg transition-all duration-200 ease-in-out relative w-full touch-manipulation">
+                        {getTasksForColumn(column.status).map(task => (
+                          <DraggableTaskCard key={task.id} task={task} onDelete={onTaskDelete} />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DroppableColumn>
+                </CardContent>
+              </Card>
+            </div>
+          ))}
+        </div>
+        
+        {/* Desktop: Grid Layout */}
+        <div className="hidden md:grid md:grid-cols-3 md:gap-6 px-0">
+          {columns.map(column => (
+            <div key={column.id} className="flex flex-col min-h-[500px] w-full">
+              <Card className="flex-1">
+                <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between text-base sm:text-lg">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
@@ -227,7 +286,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
                     strategy={verticalListSortingStrategy}
                   >
                     <div 
-                      className="min-h-[300px] sm:min-h-[400px] space-y-3 p-3 sm:p-4 rounded-lg transition-all duration-200 ease-in-out relative w-full touch-manipulation"
+                      className="min-h-[200px] md:min-h-[400px] space-y-3 p-3 md:p-4 rounded-lg transition-all duration-200 ease-in-out relative w-full touch-manipulation"
                       data-status={column.status}
                       style={{
                         backgroundImage: getTasksForColumn(column.status).length === 0 
@@ -246,23 +305,32 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
               </CardContent>
             </Card>
           </div>
-        ))}
+          ))}
+        </div>
       </div>
       
-      {/* Slower, smoother drag overlay */}
+      {/* Mobile-optimized drag overlay */}
       <DragOverlay 
         dropAnimation={{
-          duration: 500,
+          duration: 400,
           easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
         }}
         style={{
           transformOrigin: '0 0',
-          transition: 'transform 100ms ease-out', // Slower overlay movement
+          transition: 'transform 120ms ease-out',
         }}
       >
         {activeTask ? (
-          <div className="opacity-90 transform rotate-2 scale-105 pointer-events-none transition-all duration-150 ease-out">
-            <div className="bg-background border border-primary/30 rounded-lg shadow-xl">
+          <div className={`pointer-events-none transition-all duration-150 ease-out ${
+            typeof window !== 'undefined' && window.innerWidth < 768
+              ? 'opacity-95 transform rotate-1 scale-110 drop-shadow-2xl'
+              : 'opacity-90 transform rotate-2 scale-105'
+          }`}>
+            <div className={`rounded-lg shadow-xl ${
+              typeof window !== 'undefined' && window.innerWidth < 768
+                ? 'bg-background border-2 border-primary/50 ring-4 ring-primary/20'
+                : 'bg-background border border-primary/30'
+            }`}>
               <TaskCard task={activeTask} />
             </div>
           </div>

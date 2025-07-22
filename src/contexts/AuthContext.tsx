@@ -38,10 +38,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
-    // If Supabase is not configured, simulate a logged-in user
-    if (!supabase) {
+    // Skip demo mode setup if we're currently signing out
+    if (signingOut) {
+      return
+    }
+    
+    // Check if user explicitly signed out
+    const hasSignedOut = typeof window !== 'undefined' && localStorage.getItem('user-signed-out') === 'true'
+    
+    // If Supabase is not configured and user hasn't signed out, simulate a logged-in user
+    if (!supabase && !hasSignedOut) {
       const mockUser = {
         id: 'demo-user',
         email: 'demo@example.com',
@@ -50,6 +59,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       setUser(mockUser)
       setSession({ user: mockUser } as Session)
+      setLoading(false)
+      return
+    }
+    
+    // If user signed out, ensure they stay signed out
+    if (hasSignedOut) {
+      setUser(null)
+      setSession(null)
       setLoading(false)
       return
     }
@@ -75,6 +92,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, !!session)
+        
+        // Don't update state if we're currently signing out
+        if (signingOut && event === 'SIGNED_OUT') {
+          console.log('Sign out confirmed, staying signed out')
+          return
+        }
+        
         setSession(session)
         setUser(session?.user || null)
         setLoading(false)
@@ -83,39 +108,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Cleanup subscription
     return () => subscription.unsubscribe()
-  }, [])
+  }, [signingOut])
 
   // Sign out function
   const signOut = async () => {
+    // Prevent multiple sign out calls
+    if (signingOut) {
+      console.log('Sign out already in progress')
+      return
+    }
+    
     try {
+      setSigningOut(true)
       console.log('Sign out attempted, supabase:', !!supabase)
       
-      if (supabase) {
-        const { error } = await supabase.auth.signOut()
-        if (error) {
-          console.error('Supabase sign out error:', error)
-          // Fallback to manual clearing if Supabase fails
-          setUser(null)
-          setSession(null)
-        }
-      } else {
-        // For demo mode, just clear the user
-        console.log('Demo mode sign out')
-        setUser(null)
-        setSession(null)
+      // Mark user as explicitly signed out
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user-signed-out', 'true')
       }
       
-      // Force page reload to ensure clean state
+      // Clear all auth-related storage
       if (typeof window !== 'undefined') {
-        window.location.href = '/'
+        localStorage.removeItem('sb-' + window.location.hostname + '-auth-token')
+        localStorage.removeItem('supabase.auth.token')
+        sessionStorage.clear()
       }
-    } catch (error) {
-      console.error('Sign out error:', error)
-      // Fallback: force clear user state and reload
+      
+      // Clear user state immediately
       setUser(null)
       setSession(null)
+      setLoading(false)
+      
+      if (supabase) {
+        // Sign out from Supabase
+        await supabase.auth.signOut()
+      }
+      
+      // Force reload to ensure clean state
       if (typeof window !== 'undefined') {
-        window.location.href = '/'
+        window.location.reload()
+      }
+      
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // Force reload even if there's an error
+      if (typeof window !== 'undefined') {
+        // Mark as signed out and clear state
+        localStorage.setItem('user-signed-out', 'true')
+        setUser(null)
+        setSession(null)
+        window.location.reload()
       }
     }
   }
@@ -123,7 +165,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value = {
     user,
     session,
-    loading,
+    loading: loading || signingOut,
     signOut,
   }
 

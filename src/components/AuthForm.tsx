@@ -41,6 +41,10 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
         if (error) throw error
         
         if (data.user) {
+          // Clear signed-out flag when user successfully signs in
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('user-signed-out')
+          }
           onAuthSuccess()
         }
       } else {
@@ -53,6 +57,10 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
         if (error) throw error
         
         if (data.user) {
+          // Clear signed-out flag when user successfully signs up
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('user-signed-out')
+          }
           alert('Check your email for the confirmation link!')
         }
       }
@@ -81,6 +89,11 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
       })
       
       if (error) throw error
+      
+      // Clear signed-out flag for OAuth sign-in
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user-signed-out')
+      }
     } catch (error: any) {
       setError(error.message)
     } finally {

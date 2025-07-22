@@ -94,11 +94,11 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
 
   return (
     <Card className="w-full max-w-md mobile-optimized">
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-3">
         <CardTitle className="text-lg sm:text-xl">Create New Task</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Title Input */}
           <div>
             <Label htmlFor="title" className="text-sm font-medium">Title *</Label>
@@ -221,7 +221,7 @@ export function TaskForm({ onSubmit, onCancel }: TaskFormProps) {
           </div>
 
           {/* Form Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2 pt-4">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button 
               type="submit" 
               className="flex-1 touch-target"

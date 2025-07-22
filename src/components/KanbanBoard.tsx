@@ -69,17 +69,17 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     }
   }, [])
   
-  // Mobile-optimized drag sensitivity
+  // Balanced drag sensitivity - not too fast, not too slow
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Prevent accidental drags on mobile
+        distance: 8, // Slightly more distance for controlled start
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200, // Longer delay for mobile to prevent conflicts with scrolling
-        tolerance: 10, // More forgiving for finger touch
+        delay: 180, // Balanced delay for mobile
+        tolerance: 8, // More forgiving tolerance
       },
     }),
     useSensor(KeyboardSensor, {
@@ -87,23 +87,22 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     })
   )
 
-  // More forgiving collision detection
+  // Enhanced collision detection for seamless drag experience
   const collisionDetection = (args: any) => {
-    // Use rectangle intersection first for more forgiving targeting
-    const rectCollisions = rectIntersection(args)
-    
-    if (rectCollisions.length > 0) {
-      return rectCollisions
-    }
-    
-    // Then try pointer within
+    // First, try pointer within for immediate feedback
     const pointerCollisions = pointerWithin(args)
     if (pointerCollisions.length > 0) {
       return pointerCollisions
     }
     
-    // Finally, fall back to closest corners (more forgiving than closest center)
-    return closestCorners(args)
+    // Then use rectangle intersection for broader targeting
+    const rectCollisions = rectIntersection(args)
+    if (rectCollisions.length > 0) {
+      return rectCollisions
+    }
+    
+    // Finally, fall back to closest center for edge cases
+    return closestCenter(args)
   }
 
   // Define our columns
@@ -250,19 +249,20 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
         ))}
       </div>
       
-      {/* Enhanced drag overlay with better visual feedback */}
+      {/* Slower, smoother drag overlay */}
       <DragOverlay 
         dropAnimation={{
-          duration: 250,
-          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+          duration: 500,
+          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
         }}
         style={{
           transformOrigin: '0 0',
+          transition: 'transform 100ms ease-out', // Slower overlay movement
         }}
       >
         {activeTask ? (
-          <div className="transform rotate-2 scale-105 opacity-95 shadow-2xl ring-4 ring-blue-500/30 ring-offset-2 transition-all duration-200 animate-pulse">
-            <div className="bg-gradient-to-br from-blue-50 to-white border-2 border-blue-300 rounded-xl p-1">
+          <div className="opacity-90 transform rotate-2 scale-105 pointer-events-none transition-all duration-150 ease-out">
+            <div className="bg-background border border-primary/30 rounded-lg shadow-xl">
               <TaskCard task={activeTask} />
             </div>
           </div>

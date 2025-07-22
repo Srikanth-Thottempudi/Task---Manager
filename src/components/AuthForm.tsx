@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabase"
+import { useTheme } from "@/contexts/ThemeContext"
 
 interface AuthFormProps {
   onAuthSuccess: () => void
@@ -17,6 +18,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { theme, toggleTheme } = useTheme()
 
   // Handle form submission for login/signup
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,86 +89,145 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center">
-            {isLogin ? 'Sign In' : 'Sign Up'} to Task Manager
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-32 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse delay-700"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/3 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      {/* Theme Toggle Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="absolute top-6 right-6 w-12 h-12 rounded-full shadow-lg border-2 backdrop-blur-sm bg-background/80 hover:bg-background/90 transition-all duration-300 hover:scale-110 z-10"
+        onClick={toggleTheme}
+      >
+        {theme === 'dark' ? '☀️' : '🌙'}
+      </Button>
+      
+      <Card className="w-full max-w-md backdrop-blur-xl bg-background/80 shadow-2xl border-2 border-border/50 animate-in slide-in-from-bottom-8 duration-700">
+        <CardHeader className="text-center space-y-2 pb-8">
+          {/* Logo/Icon */}
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+            <span className="text-2xl font-bold text-primary-foreground">📋</span>
+          </div>
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            {isLogin ? 'Welcome Back' : 'Join Us Today'}
           </CardTitle>
+          <p className="text-muted-foreground text-sm">
+            {isLogin ? 'Sign in to access your tasks' : 'Create your account to get started'}
+          </p>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
-                {error}
+              <div className="p-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg backdrop-blur-sm animate-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">⚠️</span>
+                  {error}
+                </div>
               </div>
             )}
             
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email..."
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">Email Address</Label>
+              <div className="relative">
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="pl-12 h-12 bg-background/50 border-2 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300 placeholder:text-muted-foreground/60"
+                />
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                  📧
+                </div>
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password..."
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="pl-12 h-12 bg-background/50 border-2 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-300 placeholder:text-muted-foreground/60"
+                />
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                  🔒
+                </div>
+              </div>
+              {!isLogin && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Password must be at least 6 characters long
+                </p>
+              )}
             </div>
 
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full h-12 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100" 
               disabled={loading}
             >
-              {loading ? 'Loading...' : (isLogin ? 'Sign In' : 'Sign Up')}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                  <span>Processing...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span>{isLogin ? '🚀 Sign In' : '✨ Create Account'}</span>
+                </div>
+              )}
             </Button>
           </form>
 
-          <div className="mt-4">
+          <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+                <span className="w-full border-t border-border/50" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                <span className="bg-background px-4 text-muted-foreground font-medium">Or continue with</span>
               </div>
             </div>
 
             <Button 
               type="button" 
               variant="outline" 
-              className="w-full mt-4"
+              className="w-full mt-4 h-12 border-2 border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 transform hover:scale-[1.02]"
               onClick={handleGoogleSignIn}
               disabled={loading}
             >
-              Google
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🌐</span>
+                <span className="font-medium">Continue with Google</span>
+              </div>
             </Button>
           </div>
 
-          <div className="mt-4 text-center">
+          <div className="mt-6 text-center">
             <button
               type="button"
-              className="text-sm text-blue-600 hover:underline"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300 font-medium"
               onClick={() => setIsLogin(!isLogin)}
             >
               {isLogin 
-                ? "Don't have an account? Sign up" 
-                : "Already have an account? Sign in"
+                ? "Don't have an account? " 
+                : "Already have an account? "
               }
+              <span className="text-primary font-semibold hover:underline">
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </span>
             </button>
           </div>
         </CardContent>

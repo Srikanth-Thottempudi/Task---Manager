@@ -9,16 +9,24 @@ interface DroppableColumnProps {
 }
 
 export function DroppableColumn({ id, children }: DroppableColumnProps) {
-  const { isOver, setNodeRef } = useDroppable({
+  const { isOver, setNodeRef, active } = useDroppable({
     id,
   })
   
   const [isHighlighted, setIsHighlighted] = useState(false)
+  const [showDropIndicator, setShowDropIndicator] = useState(false)
   
   useEffect(() => {
     if (isOver) {
       setIsHighlighted(true)
-      const timer = setTimeout(() => setIsHighlighted(false), 200)
+      setShowDropIndicator(true)
+      // Add haptic feedback for mobile
+      if ('vibrate' in navigator && /Mobile|Android|iPhone|iPad/.test(navigator.userAgent)) {
+        navigator.vibrate(25)
+      }
+    } else {
+      setShowDropIndicator(false)
+      const timer = setTimeout(() => setIsHighlighted(false), 150)
       return () => clearTimeout(timer)
     }
   }, [isOver])
@@ -26,10 +34,12 @@ export function DroppableColumn({ id, children }: DroppableColumnProps) {
   return (
     <div
       ref={setNodeRef}
-      className={`transition-all duration-200 ease-in-out rounded-xl relative overflow-hidden min-h-full ${
+      className={`transition-all duration-250 ease-out rounded-lg relative min-h-full ${
         isOver 
-          ? 'bg-gradient-to-br from-blue-50 via-blue-25 to-white border-2 border-blue-400 border-dashed shadow-lg shadow-blue-200/25' 
-          : 'border-2 border-transparent hover:bg-gray-50/30'
+          ? 'bg-primary/10 border-2 border-primary/50 border-dashed' 
+          : active 
+          ? 'border border-dashed border-muted-foreground/30 bg-muted/10'
+          : ''
       }`}
       style={{
         // Make the drop zone extend beyond the visible area for easier targeting
@@ -37,10 +47,10 @@ export function DroppableColumn({ id, children }: DroppableColumnProps) {
         margin: '-8px',
       }}
     >
-      {/* Simpler feedback when dragging over */}
+      {/* Simple drop indicator */}
       {isOver && (
-        <div className="absolute inset-2 pointer-events-none border-2 border-blue-300 border-dashed rounded-lg bg-blue-50/50">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-100/30 to-transparent"></div>
+        <div className="absolute inset-2 pointer-events-none border border-primary/40 border-dashed rounded-md bg-primary/5">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent rounded-md"></div>
         </div>
       )}
       

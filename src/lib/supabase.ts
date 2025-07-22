@@ -10,6 +10,16 @@ const isSupabaseConfigured = supabaseUrl &&
   supabaseUrl !== 'https://your-project-id.supabase.co' &&
   supabaseAnonKey !== 'your-actual-anon-key-from-supabase'
 
+// Debug logging for production
+if (typeof window !== 'undefined') {
+  console.log('Supabase config check:', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseAnonKey,
+    isConfigured: isSupabaseConfigured,
+    url: supabaseUrl ? supabaseUrl.substring(0, 20) + '...' : 'missing'
+  })
+}
+
 // Create a single supabase client for interacting with your database
 export const supabase = isSupabaseConfigured 
   ? createClient(supabaseUrl!, supabaseAnonKey!)

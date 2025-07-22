@@ -87,12 +87,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Sign out function
   const signOut = async () => {
-    if (supabase) {
-      await supabase.auth.signOut()
-    } else {
-      // For demo mode, just clear the user
+    try {
+      console.log('Sign out attempted, supabase:', !!supabase)
+      
+      if (supabase) {
+        const { error } = await supabase.auth.signOut()
+        if (error) {
+          console.error('Supabase sign out error:', error)
+          // Fallback to manual clearing if Supabase fails
+          setUser(null)
+          setSession(null)
+        }
+      } else {
+        // For demo mode, just clear the user
+        console.log('Demo mode sign out')
+        setUser(null)
+        setSession(null)
+      }
+      
+      // Force page reload to ensure clean state
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // Fallback: force clear user state and reload
       setUser(null)
       setSession(null)
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
     }
   }
 

@@ -41,6 +41,9 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isMobile || !onTaskMove) return
     
+    // Prevent scrolling when long pressing
+    e.preventDefault()
+    
     longPressTimer.current = setTimeout(() => {
       setLongPressActive(true)
       setShowContextMenu(true)
@@ -48,6 +51,15 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
         navigator.vibrate(20)
       }
     }, 500)
+  }
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Cancel long press if user starts scrolling
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+    setLongPressActive(false)
   }
   
   const handleTouchEnd = () => {
@@ -77,10 +89,10 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : 'all 250ms ease-out',
-    opacity: isDragging ? 0.4 : 1,
-    zIndex: isDragging ? 1000 : showContextMenu ? 1001 : 'auto',
+    opacity: isDragging ? 0.4 : showContextMenu ? 0.7 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
     cursor: isDragging ? 'grabbing' : 'grab',
-    touchAction: isMobile ? 'none' : 'manipulation',
+    touchAction: isMobile ? 'pan-y' : 'manipulation',
     WebkitTouchCallout: 'none',
     WebkitUserSelect: 'none' as const,
     userSelect: 'none' as const,
@@ -89,6 +101,7 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
 
   const mobileProps = isMobile ? {
     onTouchStart: handleTouchStart,
+    onTouchMove: handleTouchMove,
     onTouchEnd: handleTouchEnd,
     onTouchCancel: handleTouchEnd,
   } : {}
@@ -145,45 +158,54 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
     {/* Mobile Context Menu Overlay */}
     {showContextMenu && isMobile && (
       <div 
-        className="fixed inset-0 bg-black/20 z-[1000] flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/40 z-[9999] flex items-end justify-center p-0"
         onClick={() => setShowContextMenu(false)}
+        style={{ backdropFilter: 'blur(2px)' }}
       >
-        <Card className="w-full max-w-sm bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-          <CardContent className="p-4">
-            <div className="text-center mb-4">
-              <h3 className="font-semibold text-lg">Move Task</h3>
-              <p className="text-sm text-muted-foreground mt-1 truncate">{task.title}</p>
+        <div 
+          className="w-full bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom-full duration-300 max-h-[70vh] overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-4 border-b border-gray-100">
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
+            <div className="text-center">
+              <h3 className="font-semibold text-lg text-gray-900">Move Task</h3>
+              <p className="text-sm text-gray-600 mt-1 truncate px-4">{task.title}</p>
             </div>
-            <div className="space-y-2">
-              {statusOptions.map((option) => (
-                <Button
-                  key={option.value}
-                  variant={task.status === option.value ? "default" : "outline"}
-                  className={`w-full justify-start text-left ${
-                    task.status === option.value ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                  disabled={task.status === option.value}
-                  onClick={() => handleContextMenuMove(option.value)}
-                >
-                  <div className={`w-3 h-3 rounded-full mr-2 ${
-                    option.value === 'todo' ? 'bg-red-400' :
-                    option.value === 'in-progress' ? 'bg-yellow-400' :
-                    'bg-green-400'
-                  }`} />
-                  {option.label}
-                  {task.status === option.value && <span className="ml-auto text-xs">(Current)</span>}
-                </Button>
-              ))}
-            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            {statusOptions.map((option) => (
+              <Button
+                key={option.value}
+                variant="ghost"
+                className={`w-full justify-start text-left h-14 text-base ${
+                  task.status === option.value 
+                    ? 'bg-gray-100 opacity-50 cursor-not-allowed' 
+                    : 'hover:bg-gray-50 active:bg-gray-100'
+                }`}
+                disabled={task.status === option.value}
+                onClick={() => handleContextMenuMove(option.value)}
+              >
+                <div className={`w-4 h-4 rounded-full mr-3 ${
+                  option.value === 'todo' ? 'bg-red-400' :
+                  option.value === 'in-progress' ? 'bg-yellow-400' :
+                  'bg-green-400'
+                }`} />
+                <span className="flex-1">{option.label}</span>
+                {task.status === option.value && <span className="text-xs text-gray-500">(Current)</span>}
+              </Button>
+            ))}
+          </div>
+          <div className="p-4 pt-2 border-t border-gray-100">
             <Button 
-              variant="ghost" 
-              className="w-full mt-4" 
+              variant="outline" 
+              className="w-full h-12 text-base" 
               onClick={() => setShowContextMenu(false)}
             >
               Cancel
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )}
     </>

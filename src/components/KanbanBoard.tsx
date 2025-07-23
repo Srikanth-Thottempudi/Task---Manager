@@ -219,7 +219,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
       onDragMove={handleAutoScroll}
       onDragEnd={handleDragEnd}
     >
-      <div ref={scrollContainerRef} className="w-full max-h-screen overflow-y-auto scroll-smooth">
+      <div ref={scrollContainerRef} className="w-full max-h-screen overflow-y-auto scroll-smooth mobile-scroll-container">
         {/* Mobile: Vertical Stack */}
         <div className="flex flex-col space-y-4 px-4 md:hidden">
           {columns.map(column => (

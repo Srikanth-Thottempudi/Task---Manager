@@ -192,5 +192,34 @@
       font-size: 10px !important;
       padding: 2px 6px !important;
     }
+    
+    /* Fix scrolling issues on mobile */
+    .mobile-scroll-container {
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior-y: contain !important;
+    }
+    
+    /* Smooth animations for context menu */
+    @keyframes slide-in-from-bottom-full {
+      from {
+        transform: translateY(100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+    
+    .animate-in {
+      animation-fill-mode: both;
+    }
+    
+    .slide-in-from-bottom-full {
+      animation-name: slide-in-from-bottom-full;
+    }
+    
+    .duration-300 {
+      animation-duration: 300ms;
+    }
   }
 }

@@ -55,7 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { session } } = await supabase!.auth.getSession()
       setSession(session)
       setUser(session?.user || null)
       setLoading(false)
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     getInitialSession()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = supabase!.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, !!session)
         
@@ -107,7 +107,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false)
       
       // Sign out from Supabase
-      await supabase.auth.signOut()
+      await supabase!.auth.signOut()
       
       // Force reload to ensure clean state
       if (typeof window !== 'undefined') {

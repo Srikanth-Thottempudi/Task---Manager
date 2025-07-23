@@ -147,7 +147,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     
     // Haptic feedback for mobile devices
     if ('vibrate' in navigator && /Mobile|Android|iPhone|iPad/.test(navigator.userAgent)) {
-      navigator.vibrate(50) // Short vibration on drag start
+      navigator.vibrate(20) // Reduced vibration on drag start
     }
   }
 
@@ -159,13 +159,13 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     
     // Haptic feedback for successful drop
     if (over && 'vibrate' in navigator && /Mobile|Android|iPhone|iPad/.test(navigator.userAgent)) {
-      navigator.vibrate([30, 50, 30]) // Success pattern
+      navigator.vibrate([15, 25, 15]) // Reduced success pattern
     }
     
     if (!over) {
       // Haptic feedback for failed drop
       if ('vibrate' in navigator && /Mobile|Android|iPhone|iPad/.test(navigator.userAgent)) {
-        navigator.vibrate([100, 50, 100]) // Error pattern
+        navigator.vibrate([25, 25, 25]) // Reduced error pattern
       }
       return
     }
@@ -248,7 +248,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
                     >
                       <div className="min-h-[200px] space-y-3 p-3 rounded-lg transition-all duration-200 ease-in-out relative w-full touch-manipulation">
                         {getTasksForColumn(column.status).map(task => (
-                          <DraggableTaskCard key={task.id} task={task} onDelete={onTaskDelete} />
+                          <DraggableTaskCard key={task.id} task={task} onDelete={onTaskDelete} onTaskMove={onTaskMove} />
                         ))}
                       </div>
                     </SortableContext>
@@ -297,7 +297,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
                       }}
                     >
                       {getTasksForColumn(column.status).map(task => (
-                        <DraggableTaskCard key={task.id} task={task} onDelete={onTaskDelete} />
+                        <DraggableTaskCard key={task.id} task={task} onDelete={onTaskDelete} onTaskMove={onTaskMove} />
                       ))}
                     </div>
                   </SortableContext>

@@ -234,9 +234,10 @@ export default function Home() {
               <Button
                 variant="outline"
                 onClick={signOut}
+                disabled={loading}
                 className="w-full sm:w-auto text-sm"
               >
-                Sign Out
+                {loading ? 'Signing Out...' : 'Sign Out'}
               </Button>
             </div>
           </div>

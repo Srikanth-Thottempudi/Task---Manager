@@ -31,6 +31,7 @@ export interface Category {
   name: string
   color: string
   description?: string
+  user_id: string
   created_at: string
 }
 
@@ -45,6 +46,7 @@ export interface Task {
   due_date: string
   category_id?: string
   category?: Category
+  user_id: string
   created_at: string
   updated_at: string
 }
@@ -98,7 +100,7 @@ const localStorageService = {
 
 // Database functions
 export const categoryService = {
-  // Get all categories
+  // Get all categories for the current user
   async getAllCategories() {
     if (!supabase) return localStorageService.getAllCategories()
     
@@ -117,7 +119,7 @@ export const categoryService = {
 }
 
 export const taskService = {
-  // Get all tasks with categories
+  // Get all tasks with categories for the current user
   async getAllTasks() {
     if (!supabase) return localStorageService.getAllTasks()
     
@@ -138,13 +140,17 @@ export const taskService = {
   },
 
   // Create a new task
-  async createTask(task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) {
-    if (!supabase) return localStorageService.createTask(task)
+  async createTask(task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'user_id'>) {
+    if (!supabase) return localStorageService.createTask(task as any)
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
     
     const { data, error } = await supabase
       .from('tasks')
       .insert([{
         ...task,
+        user_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])
@@ -152,7 +158,7 @@ export const taskService = {
     
     if (error) {
       console.error('Error creating task:', error)
-      return localStorageService.createTask(task)
+      return localStorageService.createTask(task as any)
     }
     
     return data?.[0]

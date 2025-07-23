@@ -41,10 +41,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
         if (error) throw error
         
         if (data.user) {
-          // Clear signed-out flag when user successfully signs in
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('user-signed-out')
-          }
           onAuthSuccess()
         }
       } else {
@@ -57,10 +53,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
         if (error) throw error
         
         if (data.user) {
-          // Clear signed-out flag when user successfully signs up
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('user-signed-out')
-          }
           alert('Check your email for the confirmation link!')
         }
       }
@@ -89,11 +81,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
       })
       
       if (error) throw error
-      
-      // Clear signed-out flag for OAuth sign-in
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('user-signed-out')
-      }
     } catch (error: any) {
       setError(error.message)
     } finally {
@@ -194,7 +181,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
-                  <span>Processing...</span>
+                  <span>{isLogin ? 'Signing In...' : 'Creating Account...'}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -223,7 +210,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
             >
               <div className="flex items-center gap-3">
                 <span className="text-lg">🌐</span>
-                <span className="font-medium">Continue with Google</span>
+                <span className="font-medium">{isLogin ? 'Continue with Google' : 'Sign up with Google'}</span>
               </div>
             </Button>
           </div>

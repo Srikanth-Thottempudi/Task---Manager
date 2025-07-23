@@ -41,42 +41,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
-    // Skip demo mode setup if we're currently signing out
+    // Skip auth setup if we're currently signing out
     if (signingOut) {
       return
     }
     
-    // Check if user explicitly signed out
-    const hasSignedOut = typeof window !== 'undefined' && localStorage.getItem('user-signed-out') === 'true'
-    
-    // If Supabase is not configured and user hasn't signed out, simulate a logged-in user
-    if (!supabase && !hasSignedOut) {
-      const mockUser = {
-        id: 'demo-user',
-        email: 'demo@example.com',
-        created_at: new Date().toISOString()
-      } as User
-      
-      setUser(mockUser)
-      setSession({ user: mockUser } as Session)
-      setLoading(false)
-      return
-    }
-    
-    // If user signed out, ensure they stay signed out
-    if (hasSignedOut) {
-      setUser(null)
-      setSession(null)
+    // Ensure Supabase is configured
+    if (!supabase) {
+      console.error('Supabase is not configured. Please check your environment variables.')
       setLoading(false)
       return
     }
 
     // Get initial session
     const getInitialSession = async () => {
-      if (!supabase) {
-        setLoading(false)
-        return
-      }
       const { data: { session } } = await supabase.auth.getSession()
       setSession(session)
       setUser(session?.user || null)
@@ -86,10 +64,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     getInitialSession()
 
     // Listen for auth changes
-    if (!supabase) {
-      return () => {}
-    }
-    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, !!session)
@@ -118,31 +92,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
     
+    if (!supabase) {
+      console.error('Cannot sign out: Supabase not configured')
+      return
+    }
+    
     try {
       setSigningOut(true)
-      console.log('Sign out attempted, supabase:', !!supabase)
-      
-      // Mark user as explicitly signed out
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user-signed-out', 'true')
-      }
-      
-      // Clear all auth-related storage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('sb-' + window.location.hostname + '-auth-token')
-        localStorage.removeItem('supabase.auth.token')
-        sessionStorage.clear()
-      }
+      console.log('Sign out attempted')
       
       // Clear user state immediately
       setUser(null)
       setSession(null)
       setLoading(false)
       
-      if (supabase) {
-        // Sign out from Supabase
-        await supabase.auth.signOut()
-      }
+      // Sign out from Supabase
+      await supabase.auth.signOut()
       
       // Force reload to ensure clean state
       if (typeof window !== 'undefined') {
@@ -153,8 +118,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Sign out error:', error)
       // Force reload even if there's an error
       if (typeof window !== 'undefined') {
-        // Mark as signed out and clear state
-        localStorage.setItem('user-signed-out', 'true')
         setUser(null)
         setSession(null)
         window.location.reload()

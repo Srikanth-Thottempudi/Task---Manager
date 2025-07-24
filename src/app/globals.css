@@ -200,17 +200,6 @@
       overscroll-behavior-y: contain !important;
     }
     
-    /* Ensure task form doesn't interfere with scroll */
-    .mobile-task-form-container {
-      position: relative !important;
-      z-index: 1 !important;
-      background: var(--background) !important;
-      /* Subtle shadow to separate from scrollable content */
-      box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
-      /* Add padding to match the parent container */
-      padding: 0 16px !important;
-      margin: 0 -16px !important;
-    }
     
     /* Smooth animations for context menu */
     @keyframes slide-in-from-bottom-full {

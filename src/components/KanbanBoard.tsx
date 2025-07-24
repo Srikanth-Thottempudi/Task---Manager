@@ -46,10 +46,11 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
   
   // Auto-scroll functionality
   const handleAutoScroll = useCallback((event: DragMoveEvent) => {
-    const container = scrollContainerRef.current
-    if (!container) return
+    // Find the page-level scroll container
+    const pageScrollContainer = document.querySelector('.mobile-scroll-container')
+    if (!pageScrollContainer) return
     
-    const containerRect = container.getBoundingClientRect()
+    const containerRect = pageScrollContainer.getBoundingClientRect()
     const scrollThreshold = 100
     const scrollSpeed = 10
     
@@ -61,11 +62,11 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     
     // Scroll up
     if (clientY < containerRect.top + scrollThreshold) {
-      container.scrollTop -= scrollSpeed
+      pageScrollContainer.scrollTop -= scrollSpeed
     }
     // Scroll down
     else if (clientY > containerRect.bottom - scrollThreshold) {
-      container.scrollTop += scrollSpeed
+      pageScrollContainer.scrollTop += scrollSpeed
     }
   }, [])
   
@@ -221,7 +222,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     >
       <div ref={scrollContainerRef} className="w-full max-h-screen overflow-y-auto scroll-smooth mobile-scroll-container">
         {/* Mobile: Vertical Stack */}
-        <div className="flex flex-col space-y-4 px-4 md:hidden">
+        <div className="flex flex-col space-y-4 px-4 md:hidden pb-4">
           {columns.map(column => (
             <div key={`mobile-${column.id}`} className="w-full">
               <Card className="w-full">
@@ -307,7 +308,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
           </div>
           ))}
         </div>
-        </div>
+      </div>
       
       {/* Mobile-optimized drag overlay */}
       <DragOverlay 

@@ -295,12 +295,10 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-6 sm:space-y-8">
-              {/* Task Form Row - Fixed position on mobile for better UX */}
-              <div className="mobile-task-form-container md:shadow-none md:bg-transparent">
-                <div className="flex justify-center">
-                  <div className="w-full max-w-md mobile-optimized">
-                    <TaskForm onSubmit={handleAddTask} />
-                  </div>
+              {/* Task Form Row - Collapsible on mobile */}
+              <div className="flex justify-center">
+                <div className="w-full max-w-md mobile-optimized">
+                  <TaskForm onSubmit={handleAddTask} />
                 </div>
               </div>
               

@@ -44,15 +44,16 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   
-  // Auto-scroll functionality
+  // Enhanced auto-scroll functionality with momentum and better mobile support
   const handleAutoScroll = useCallback((event: DragMoveEvent) => {
     // Find the page-level scroll container
     const pageScrollContainer = document.querySelector('.mobile-scroll-container')
     if (!pageScrollContainer) return
     
     const containerRect = pageScrollContainer.getBoundingClientRect()
-    const scrollThreshold = 100
-    const scrollSpeed = 10
+    const isMobile = window.innerWidth < 768
+    const scrollThreshold = isMobile ? 80 : 100
+    const baseScrollSpeed = isMobile ? 8 : 10
     
     // Get current mouse/touch position from event delta
     const currentRect = event.active.rect.current.translated
@@ -60,27 +61,37 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     
     const clientY = currentRect.top + currentRect.height / 2
     
+    // Calculate dynamic scroll speed based on distance from edge
+    const calculateScrollSpeed = (distance: number, threshold: number) => {
+      const factor = Math.max(0, (threshold - distance) / threshold)
+      return baseScrollSpeed * (0.5 + factor * 1.5) // Smoother acceleration
+    }
+    
     // Scroll up
     if (clientY < containerRect.top + scrollThreshold) {
-      pageScrollContainer.scrollTop -= scrollSpeed
+      const distance = clientY - containerRect.top
+      const speed = calculateScrollSpeed(distance, scrollThreshold)
+      pageScrollContainer.scrollBy({ top: -speed, behavior: 'auto' })
     }
     // Scroll down
     else if (clientY > containerRect.bottom - scrollThreshold) {
-      pageScrollContainer.scrollTop += scrollSpeed
+      const distance = containerRect.bottom - clientY
+      const speed = calculateScrollSpeed(distance, scrollThreshold)
+      pageScrollContainer.scrollBy({ top: speed, behavior: 'auto' })
     }
   }, [])
   
-  // Mobile-optimized drag sensitivity
+  // Enhanced mobile-optimized drag sensitivity
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // Shorter distance for better mobile response
+        distance: 3, // Even more responsive for precise interactions
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250, // Longer delay to prevent conflicts with scrolling
-        tolerance: 15, // Much more forgiving for finger touch
+        delay: 200, // Slightly reduced delay for better responsiveness
+        tolerance: 12, // Optimized tolerance for better drag detection
       },
     }),
     useSensor(KeyboardSensor, {
@@ -220,11 +231,23 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
       onDragMove={handleAutoScroll}
       onDragEnd={handleDragEnd}
     >
-      <div ref={scrollContainerRef} className="w-full max-h-screen overflow-y-auto scroll-smooth mobile-scroll-container">
+      <div 
+        ref={scrollContainerRef} 
+        className="w-full max-h-[80vh] overflow-y-auto scroll-smooth mobile-scroll-container"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
+          scrollBehavior: 'smooth',
+          // Enhanced momentum scrolling for iOS
+          scrollSnapType: 'none',
+          // Prevent bounce on iOS when dragging
+          touchAction: 'pan-y'
+        }}
+      >
         {/* Mobile: Vertical Stack */}
-        <div className="flex flex-col space-y-4 px-4 md:hidden pb-4">
+        <div className="flex flex-col space-y-4 px-4 md:hidden pt-4 pb-8">
           {columns.map(column => (
-            <div key={`mobile-${column.id}`} className="w-full">
+            <div key={`mobile-${column.id}`} className="w-full kanban-column">
               <Card className="w-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center justify-between text-base">
@@ -247,7 +270,17 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
                       items={getTasksForColumn(column.status).map(task => task.id)}
                       strategy={verticalListSortingStrategy}
                     >
-                      <div className="min-h-[200px] space-y-3 p-3 rounded-lg transition-all duration-200 ease-in-out relative w-full touch-manipulation">
+                      <div 
+                        className="min-h-[200px] space-y-3 p-3 rounded-lg transition-all duration-200 ease-in-out relative w-full"
+                        style={{
+                          touchAction: 'pan-y',
+                          WebkitTouchCallout: 'none',
+                          WebkitUserSelect: 'none',
+                          userSelect: 'none',
+                          // Better mobile interaction
+                          minHeight: typeof window !== 'undefined' && window.innerWidth < 768 ? '180px' : '200px'
+                        }}
+                      >
                         {getTasksForColumn(column.status).map(task => (
                           <DraggableTaskCard key={task.id} task={task} onDelete={onTaskDelete} onTaskMove={onTaskMove} />
                         ))}
@@ -263,7 +296,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
         {/* Desktop: Grid Layout */}
         <div className="hidden md:grid md:grid-cols-3 md:gap-6 px-0">
           {columns.map(column => (
-            <div key={column.id} className="flex flex-col min-h-[500px] w-full">
+            <div key={column.id} className="flex flex-col min-h-[500px] w-full kanban-column">
               <Card className="flex-1">
                 <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between text-base sm:text-lg">
@@ -287,14 +320,18 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
                     strategy={verticalListSortingStrategy}
                   >
                     <div 
-                      className="min-h-[200px] md:min-h-[400px] space-y-3 p-3 md:p-4 rounded-lg transition-all duration-200 ease-in-out relative w-full touch-manipulation"
+                      className="min-h-[200px] md:min-h-[400px] space-y-3 p-3 md:p-4 rounded-lg transition-all duration-200 ease-in-out relative w-full"
                       data-status={column.status}
                       style={{
                         backgroundImage: getTasksForColumn(column.status).length === 0 
                           ? 'radial-gradient(circle at center, rgba(0,0,0,0.03) 1px, transparent 1px)'
                           : 'none',
                         backgroundSize: '20px 20px',
-                        WebkitOverflowScrolling: 'touch'
+                        WebkitOverflowScrolling: 'touch',
+                        touchAction: 'pan-y',
+                        WebkitTouchCallout: 'none',
+                        WebkitUserSelect: 'none',
+                        userSelect: 'none'
                       }}
                     >
                       {getTasksForColumn(column.status).map(task => (

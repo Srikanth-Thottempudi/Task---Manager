@@ -128,11 +128,26 @@
       /* Fix for iOS Safari bounce scroll */
       overscroll-behavior: none;
       -webkit-overflow-scrolling: touch;
+      /* Prevent rubber band effect during drag */
+      -webkit-transform: translate3d(0,0,0);
     }
     
     /* Fix for iOS Safari 100vh issue */
     .ios-full-height {
       height: -webkit-fill-available;
+    }
+    
+    /* iOS-specific scroll optimizations */
+    .mobile-scroll-container {
+      /* Better momentum scrolling */
+      -webkit-overflow-scrolling: touch !important;
+      /* Prevent scrolling conflicts with drag gestures */
+      -webkit-touch-callout: none !important;
+      -webkit-user-select: none !important;
+      /* Optimize for retina displays */
+      -webkit-transform: translateZ(0) !important;
+      -webkit-perspective: 1000 !important;
+      -webkit-backface-visibility: hidden !important;
     }
   }
   
@@ -142,6 +157,16 @@
       /* Better scrolling on Android */
       scroll-behavior: smooth;
       overscroll-behavior-y: contain;
+      /* Optimize rendering for smooth scrolling */
+      transform: translateZ(0);
+    }
+    
+    /* Android-specific kanban optimizations */
+    .mobile-scroll-container {
+      /* Better performance on Android */
+      scroll-snap-type: none !important;
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
     }
   }
   
@@ -193,11 +218,36 @@
       padding: 2px 6px !important;
     }
     
-    /* Fix scrolling issues on mobile */
+    /* Enhanced scrolling for mobile kanban */
     .mobile-scroll-container {
       overflow-y: auto !important;
+      overflow-x: hidden !important;
       -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior: contain !important;
       overscroll-behavior-y: contain !important;
+      scroll-behavior: smooth !important;
+      /* Prevent momentum scrolling conflicts with drag */
+      touch-action: pan-y !important;
+      /* Better performance on mobile */
+      will-change: scroll-position !important;
+      /* Reduce scroll bounce on iOS */
+      -webkit-transform: translateZ(0) !important;
+      transform: translateZ(0) !important;
+      /* Ensure proper scroll area */
+      min-height: 0 !important;
+    }
+    
+    /* Optimize kanban columns for smooth scrolling */
+    .mobile-scroll-container .kanban-column {
+      contain: layout style paint !important;
+      transform: translateZ(0) !important;
+    }
+    
+    /* Smooth transitions for drag operations */
+    .mobile-scroll-container [data-status] {
+      backface-visibility: hidden !important;
+      -webkit-backface-visibility: hidden !important;
+      transform: translateZ(0) !important;
     }
     
     
@@ -221,6 +271,51 @@
     
     .duration-300 {
       animation-duration: 300ms;
+    }
+    
+    /* Optimize task card interactions */
+    .mobile-task-card {
+      transform: translateZ(0) !important;
+      backface-visibility: hidden !important;
+      -webkit-backface-visibility: hidden !important;
+    }
+    
+    /* Prevent text selection during drag operations */
+    .dragging * {
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      pointer-events: none !important;
+    }
+    
+    /* Smooth momentum scrolling for kanban */
+    .mobile-scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* Better performance for drag overlays */
+    [data-dnd-drag-overlay] {
+      transform: translateZ(0) !important;
+      will-change: transform !important;
+    }
+  }
+  
+  /* Universal scroll optimizations */
+  .scroll-optimized {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Performance optimizations for all mobile interactions */
+  @media (hover: none) and (pointer: coarse) {
+    * {
+      /* Optimize rendering for touch devices */
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .touch-optimized {
+      transform: translateZ(0);
+      will-change: transform;
     }
   }
 }

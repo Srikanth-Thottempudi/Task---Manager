@@ -51,6 +51,10 @@ export function DroppableColumn({ id, children }: DroppableColumnProps) {
         // Larger drop zone on mobile for easier targeting
         padding: isMobile ? '16px' : '8px',
         margin: isMobile ? '-16px' : '-8px',
+        // Performance optimizations
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
       }}
     >
       {/* Enhanced mobile drop indicator */}

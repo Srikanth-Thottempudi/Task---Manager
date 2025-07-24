@@ -188,7 +188,7 @@ export default function Home() {
   }
 
   return (
-    <div className="mobile-full-height ios-full-height dynamic-viewport bg-background p-4 sm:p-6 lg:p-8 transition-colors safe-area-padding ios-fix android-fix">
+    <div className="mobile-full-height ios-full-height dynamic-viewport bg-background p-4 sm:p-6 lg:p-8 transition-colors safe-area-padding ios-fix android-fix scroll-optimized">
       <div className="max-w-7xl mx-auto">
         <header className="mb-6 sm:mb-8">
           {/* Mobile-first header layout */}
@@ -294,8 +294,8 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="space-y-6 sm:space-y-8">
-              {/* Task Form Row - Collapsible on mobile */}
+            <div className="space-y-4 sm:space-y-6">
+              {/* Task Form Row - Compact on mobile */}
               <div className="flex justify-center">
                 <div className="w-full max-w-md mobile-optimized">
                   <TaskForm onSubmit={handleAddTask} />

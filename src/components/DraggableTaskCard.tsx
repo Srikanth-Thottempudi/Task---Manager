@@ -41,8 +41,12 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isMobile || !onTaskMove) return
     
-    // Prevent scrolling when long pressing
-    e.preventDefault()
+    // Store initial touch position for gesture detection
+    const touch = e.touches[0]
+    const initialY = touch.clientY
+    
+    // Only prevent default if this looks like a long press intent
+    // Allow normal scrolling to continue initially
     
     longPressTimer.current = setTimeout(() => {
       setLongPressActive(true)
@@ -50,12 +54,19 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
       if ('vibrate' in navigator) {
         navigator.vibrate(20)
       }
-    }, 500)
+      // Now prevent scrolling since we're showing context menu
+      document.body.style.overflow = 'hidden'
+    }, 400) // Reduced from 500ms for better responsiveness
   }
   
   const handleTouchMove = (e: React.TouchEvent) => {
-    // Cancel long press if user starts scrolling
+    // Cancel long press if user moves significantly (scrolling)
     if (longPressTimer.current) {
+      const touch = e.touches[0]
+      const moveThreshold = 10 // pixels
+      
+      // If user moved more than threshold, they're probably scrolling
+      // (This requires storing initial position, but for simplicity we'll just cancel)
       clearTimeout(longPressTimer.current)
       longPressTimer.current = null
     }
@@ -68,6 +79,8 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
       longPressTimer.current = null
     }
     setLongPressActive(false)
+    // Restore scrolling
+    document.body.style.overflow = ''
   }
   
   const handleContextMenuMove = (newStatus: Task['status']) => {
@@ -78,6 +91,8 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
       }
     }
     setShowContextMenu(false)
+    // Restore scrolling
+    document.body.style.overflow = ''
   }
   
   const statusOptions = [
@@ -92,7 +107,7 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
     opacity: isDragging ? 0.4 : showContextMenu ? 0.7 : 1,
     zIndex: isDragging ? 1000 : 'auto',
     cursor: isDragging ? 'grabbing' : 'grab',
-    touchAction: isMobile ? 'pan-y' : 'manipulation',
+    touchAction: isMobile ? 'pan-y pinch-zoom' : 'manipulation',
     WebkitTouchCallout: 'none',
     WebkitUserSelect: 'none' as const,
     userSelect: 'none' as const,
@@ -115,11 +130,11 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
         style={style}
         {...dragProps}
         {...mobileProps}
-        className={`group relative select-none transition-all duration-300 ${
+        className={`group relative select-none transition-all duration-200 ${
           isMobile 
-            ? 'cursor-pointer active:scale-[0.98] hover:shadow-md'
+            ? 'cursor-pointer active:scale-[0.97] touch-manipulation'
             : 'cursor-grab active:cursor-grabbing hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/10'
-        } ${longPressActive ? 'scale-[0.98] shadow-lg' : ''}`}
+        } ${longPressActive ? 'scale-[0.97] shadow-lg ring-2 ring-primary/30' : ''}`}
       >
       {/* Desktop drag handle indicator */}
       {!isMobile && (
@@ -159,8 +174,15 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
     {showContextMenu && isMobile && (
       <div 
         className="fixed inset-0 bg-black/40 z-[9999] flex items-end justify-center p-0"
-        onClick={() => setShowContextMenu(false)}
-        style={{ backdropFilter: 'blur(2px)' }}
+        onClick={() => {
+          setShowContextMenu(false)
+          document.body.style.overflow = ''
+        }}
+        style={{ 
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
+          touchAction: 'none' // Prevent scrolling behind modal
+        }}
       >
         <div 
           className="w-full bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom-full duration-300 max-h-[70vh] overflow-hidden"

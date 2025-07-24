@@ -307,7 +307,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
           </div>
           ))}
         </div>
-      </div>
+        </div>
       
       {/* Mobile-optimized drag overlay */}
       <DragOverlay 

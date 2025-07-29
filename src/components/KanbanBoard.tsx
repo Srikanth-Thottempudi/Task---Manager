@@ -20,6 +20,7 @@ import {
   pointerWithin,
   DragMoveEvent,
   getClientRect,
+  MeasuringStrategy,
 } from "@dnd-kit/core"
 import type { Modifier } from "@dnd-kit/core"
 import {
@@ -248,7 +249,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
       onDragEnd={handleDragEnd}
       measuring={{
         droppable: {
-          strategy: 'always',
+          strategy: MeasuringStrategy.Always,
         },
         dragOverlay: {
           measure: getClientRect,

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
+import { createPortal } from "react-dom"
 import {
   DndContext,
   DragEndEvent,
@@ -18,7 +19,9 @@ import {
   getFirstCollision,
   pointerWithin,
   DragMoveEvent,
+  getClientRect,
 } from "@dnd-kit/core"
+import type { Modifier } from "@dnd-kit/core"
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -43,6 +46,36 @@ interface KanbanBoardProps {
 export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, onTaskDelete }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  
+  // Custom modifier to ensure drag overlay starts from exact position
+  const customPositionModifier: Modifier = ({ transform, draggingNodeRect, activatorEvent }) => {
+    if (!draggingNodeRect || !activatorEvent) {
+      return transform
+    }
+    
+    // Get the exact click position relative to the element
+    const rect = draggingNodeRect
+    const event = activatorEvent as PointerEvent | TouchEvent
+    
+    let offsetX = 0
+    let offsetY = 0
+    
+    if ('clientX' in event) {
+      // Mouse event
+      offsetX = event.clientX - rect.left
+      offsetY = event.clientY - rect.top
+    } else if (event.touches && event.touches[0]) {
+      // Touch event
+      offsetX = event.touches[0].clientX - rect.left
+      offsetY = event.touches[0].clientY - rect.top
+    }
+    
+    return {
+      ...transform,
+      x: transform.x - (rect.width / 2 - offsetX),
+      y: transform.y - (rect.height / 2 - offsetY),
+    }
+  }
   
   // Enhanced auto-scroll functionality with momentum and better mobile support
   const handleAutoScroll = useCallback((event: DragMoveEvent) => {
@@ -81,17 +114,17 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     }
   }, [])
   
-  // Enhanced mobile-optimized drag sensitivity
+  // Enhanced drag sensors for desktop and mobile
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3, // Even more responsive for precise interactions
+        distance: 1, // Very responsive
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200, // Slightly reduced delay for better responsiveness
-        tolerance: 12, // Optimized tolerance for better drag detection
+        delay: 50, // Quick response on mobile
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -99,40 +132,22 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     })
   )
 
-  // Mobile-optimized collision detection
+  // Optimized collision detection for both mobile and desktop
   const collisionDetection = (args: any) => {
-    // For mobile, use more forgiving collision detection
-    const isMobile = window.innerWidth < 768
-    
-    if (isMobile) {
-      // On mobile, prioritize rectangle intersection for larger target areas
-      const rectCollisions = rectIntersection(args)
-      if (rectCollisions.length > 0) {
-        return rectCollisions
-      }
-      
-      // Then try closest center for easier targeting
-      const centerCollisions = closestCenter(args)
-      if (centerCollisions.length > 0) {
-        return centerCollisions
-      }
-      
-      // Finally, pointer within
-      return pointerWithin(args)
-    } else {
-      // Desktop: More precise targeting
-      const pointerCollisions = pointerWithin(args)
-      if (pointerCollisions.length > 0) {
-        return pointerCollisions
-      }
-      
-      const rectCollisions = rectIntersection(args)
-      if (rectCollisions.length > 0) {
-        return rectCollisions
-      }
-      
-      return closestCenter(args)
+    // Start with pointer-based detection for precision
+    const pointerCollisions = pointerWithin(args)
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions
     }
+    
+    // Fall back to rectangle intersection for larger drop zones
+    const rectCollisions = rectIntersection(args)
+    if (rectCollisions.length > 0) {
+      return rectCollisions
+    }
+    
+    // Finally use closest center as last resort
+    return closestCenter(args)
   }
 
   // Define our columns
@@ -154,12 +169,15 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
 
   // Handle when dragging starts
   const handleDragStart = (event: DragStartEvent) => {
+    console.log('Drag started:', event.active.id)
     const task = filteredTasks.find(t => t.id === event.active.id)
+    console.log('Active task:', task)
+    console.log('Drag start rect:', event.active.rect.current.translated)
     setActiveTask(task || null)
     
     // Haptic feedback for mobile devices
     if ('vibrate' in navigator && /Mobile|Android|iPhone|iPad/.test(navigator.userAgent)) {
-      navigator.vibrate(20) // Reduced vibration on drag start
+      navigator.vibrate(20)
     }
   }
 
@@ -223,13 +241,19 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
 
   return (
     <DndContext
-      key={`dnd-${filteredTasks.map(t => t.id).join('-')}`}
       sensors={sensors}
       collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
-      onDragMove={handleAutoScroll}
       onDragEnd={handleDragEnd}
+      measuring={{
+        droppable: {
+          strategy: 'always',
+        },
+        dragOverlay: {
+          measure: getClientRect,
+        },
+      }}
     >
       <div 
         ref={scrollContainerRef} 
@@ -238,10 +262,7 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
           scrollBehavior: 'smooth',
-          // Enhanced momentum scrolling for iOS
           scrollSnapType: 'none',
-          // Prevent bounce on iOS when dragging
-          touchAction: 'pan-y'
         }}
       >
         {/* Mobile: Vertical Stack */}
@@ -273,7 +294,6 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
                       <div 
                         className="min-h-[200px] space-y-3 p-3 rounded-lg transition-all duration-200 ease-in-out relative w-full"
                         style={{
-                          touchAction: 'pan-y',
                           WebkitTouchCallout: 'none',
                           WebkitUserSelect: 'none',
                           userSelect: 'none',
@@ -328,7 +348,6 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
                           : 'none',
                         backgroundSize: '20px 20px',
                         WebkitOverflowScrolling: 'touch',
-                        touchAction: 'pan-y',
                         WebkitTouchCallout: 'none',
                         WebkitUserSelect: 'none',
                         userSelect: 'none'
@@ -347,28 +366,29 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
         </div>
       </div>
       
-      {/* Mobile-optimized drag overlay */}
-      <DragOverlay 
+      {/* Enhanced drag overlay with smooth animations */}
+      <DragOverlay
+        modifiers={[customPositionModifier]}
         dropAnimation={{
-          duration: 400,
-          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          duration: 200,
+          easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
         }}
         style={{
-          transformOrigin: '0 0',
-          transition: 'transform 120ms ease-out',
+          cursor: 'grabbing',
         }}
       >
         {activeTask ? (
-          <div className={`pointer-events-none transition-all duration-150 ease-out ${
-            typeof window !== 'undefined' && window.innerWidth < 768
-              ? 'opacity-95 transform rotate-1 scale-110 drop-shadow-2xl'
-              : 'opacity-90 transform rotate-2 scale-105'
-          }`}>
-            <div className={`rounded-lg shadow-xl ${
-              typeof window !== 'undefined' && window.innerWidth < 768
-                ? 'bg-background border-2 border-primary/50 ring-4 ring-primary/20'
-                : 'bg-background border border-primary/30'
-            }`}>
+          <div 
+            className="shadow-2xl bg-white rounded-xl overflow-hidden ring-2 ring-blue-400/40 ring-offset-2 ring-offset-white/50"
+            style={{
+              transform: 'rotate(1deg) scale(1.03)',
+              transformOrigin: 'center',
+              opacity: 0.96,
+              backdropFilter: 'blur(1px)',
+              transition: 'all 0.1s ease-out',
+            }}
+          >
+            <div className="bg-gradient-to-br from-blue-50/50 to-transparent p-0.5">
               <TaskCard task={activeTask} />
             </div>
           </div>

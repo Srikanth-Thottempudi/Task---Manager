@@ -39,6 +39,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [signingOut, setSigningOut] = useState(false)
+  
+  // Quick initial check to reduce loading time
+  useEffect(() => {
+    // Check for cached session data to speed up loading
+    const checkCachedSession = () => {
+      try {
+        const cachedSession = localStorage.getItem('supabase.auth.token')
+        if (!cachedSession || cachedSession === 'null') {
+          // No cached session, proceed to auth form quickly
+          console.log('No cached session found, proceeding to auth form')
+          setLoading(false)
+          setUser(null)
+          setSession(null)
+          return true
+        }
+      } catch (error) {
+        console.log('Cache check failed:', error)
+      }
+      return false
+    }
+    
+    // If no cache, show auth form immediately
+    if (checkCachedSession()) {
+      return
+    }
+    
+    // Set a maximum loading time regardless of network issues
+    const maxLoadingTimer = setTimeout(() => {
+      if (loading) {
+        console.log('Max loading time reached, proceeding without auth')
+        setLoading(false)
+        setUser(null)
+        setSession(null)
+      }
+    }, 3000) // 3 second max loading time
+    
+    return () => clearTimeout(maxLoadingTimer)
+  }, [])
 
   useEffect(() => {
     // Skip auth setup if we're currently signing out
@@ -53,12 +91,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
 
-    // Get initial session
+    // Get initial session with timeout
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase!.auth.getSession()
-      setSession(session)
-      setUser(session?.user || null)
-      setLoading(false)
+      try {
+        // Add timeout to prevent hanging on auth
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth timeout')), 5000)
+        );
+        
+        const sessionPromise = supabase!.auth.getSession();
+        
+        const { data: { session } } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
+        
+        setSession(session)
+        setUser(session?.user || null)
+      } catch (error) {
+        console.error('Auth session error:', error)
+        // Continue without auth if it fails
+        setSession(null)
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
     }
 
     getInitialSession()

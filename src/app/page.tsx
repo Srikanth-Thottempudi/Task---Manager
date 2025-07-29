@@ -34,11 +34,20 @@ export default function Home() {
 
   const loadTasks = async () => {
     try {
-      const fetchedTasks = await taskService.getAllTasks();
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database connection timeout')), 10000)
+      );
+      
+      const fetchedTasks = await Promise.race([
+        taskService.getAllTasks(),
+        timeoutPromise
+      ]);
+      
       console.log('Raw tasks from database:', fetchedTasks);
       
       // Convert database format to component format
-      const formattedTasks = fetchedTasks.map((task: any) => ({
+      const formattedTasks = (fetchedTasks as any[]).map((task: any) => ({
         ...task,
         dueDate: task.due_date,
       }));
@@ -63,10 +72,21 @@ export default function Home() {
 
   const loadCategories = async () => {
     try {
-      const fetchedCategories = await categoryService.getAllCategories();
-      setCategories(fetchedCategories);
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database connection timeout')), 8000)
+      );
+      
+      const fetchedCategories = await Promise.race([
+        categoryService.getAllCategories(),
+        timeoutPromise
+      ]);
+      
+      setCategories(fetchedCategories as any[]);
     } catch (error) {
       console.error('Failed to load categories:', error);
+      // Continue without categories if they fail to load
+      setCategories([]);
     }
   };
 
@@ -173,11 +193,26 @@ export default function Home() {
     }
   };
 
-  // Show loading state
+  // Show optimized loading state with quick timeout
   if (loading) {
+    // Auto-proceed to auth form after short delay if still loading
+    setTimeout(() => {
+      if (loading) {
+        console.log('Loading timeout reached, proceeding to auth form')
+      }
+    }, 2000)
+    
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+      <div className="mobile-full-height ios-full-height dynamic-viewport bg-background p-4 sm:p-6 lg:p-8 transition-colors safe-area-padding ios-fix android-fix scroll-optimized">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <div className="text-lg font-medium text-foreground">Loading Task Manager...</div>
+              <div className="text-sm text-muted-foreground mt-2">Initializing application</div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -305,7 +340,6 @@ export default function Home() {
               {/* Kanban Board - Mobile optimized */}
               <div className="-mx-4 sm:mx-0">
                 <KanbanBoard 
-                  key={`kanban-${selectedCategoryFilter}`} 
                   tasks={tasks} 
                   filteredTasks={filteredTasks}
                   onTaskMove={handleTaskMove} 

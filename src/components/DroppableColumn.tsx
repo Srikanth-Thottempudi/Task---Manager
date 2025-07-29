@@ -22,11 +22,11 @@ export function DroppableColumn({ id, children }: DroppableColumnProps) {
       setShowDropIndicator(true)
       // Add haptic feedback for mobile
       if ('vibrate' in navigator && /Mobile|Android|iPhone|iPad/.test(navigator.userAgent)) {
-        navigator.vibrate(25)
+        navigator.vibrate(15) // Gentler vibration
       }
     } else {
       setShowDropIndicator(false)
-      const timer = setTimeout(() => setIsHighlighted(false), 150)
+      const timer = setTimeout(() => setIsHighlighted(false), 200)
       return () => clearTimeout(timer)
     }
   }, [isOver])
@@ -36,44 +36,47 @@ export function DroppableColumn({ id, children }: DroppableColumnProps) {
   return (
     <div
       ref={setNodeRef}
-      className={`transition-all duration-250 ease-out rounded-lg relative min-h-full ${
+      className={`transition-all duration-300 ease-out rounded-lg relative min-h-full ${
         isOver 
           ? isMobile
-            ? 'bg-primary/20 border-4 border-primary/70 border-dashed shadow-lg'
-            : 'bg-primary/10 border-2 border-primary/50 border-dashed'
+            ? 'bg-blue-50 border-2 border-blue-400 border-dashed shadow-lg scale-[1.02]'
+            : 'bg-blue-50/50 border-2 border-blue-300 border-dashed shadow-md scale-[1.01]'
           : active 
           ? isMobile
-            ? 'border-2 border-dashed border-primary/40 bg-primary/5'
-            : 'border border-dashed border-muted-foreground/30 bg-muted/10'
+            ? 'border border-dashed border-blue-300/50 bg-blue-50/30'
+            : 'border border-dashed border-blue-200/40 bg-blue-50/20'
           : ''
       }`}
       style={{
-        // Larger drop zone on mobile for easier targeting
-        padding: isMobile ? '16px' : '8px',
-        margin: isMobile ? '-16px' : '-8px',
         // Performance optimizations
-        transform: 'translateZ(0)',
+        transform: isOver ? (isMobile ? 'translateZ(0) scale(1.02)' : 'translateZ(0) scale(1.01)') : 'translateZ(0)',
         backfaceVisibility: 'hidden',
         WebkitBackfaceVisibility: 'hidden',
+        willChange: 'transform, background-color, border-color',
       }}
     >
-      {/* Enhanced mobile drop indicator */}
+      {/* Enhanced drop indicator */}
       {isOver && (
-        <div className={`absolute pointer-events-none border-dashed rounded-md ${
+        <div className={`absolute pointer-events-none border-dashed rounded-lg animate-pulse ${
           isMobile 
-            ? 'inset-4 border-2 border-primary/60 bg-primary/15'
-            : 'inset-2 border border-primary/40 bg-primary/5'
+            ? 'inset-2 border-2 border-blue-400/60 bg-blue-100/20'
+            : 'inset-1 border border-blue-300/50 bg-blue-50/30'
         }`}>
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/20 to-transparent rounded-md"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-100/30 to-blue-50/10 rounded-lg"></div>
           {isMobile && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-primary/70 font-bold text-sm">
-              Drop Here
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-600 font-semibold text-sm bg-white/95 px-4 py-2 rounded-full shadow-lg border border-blue-200/50 animate-bounce">
+              📥 Drop Here
+            </div>
+          )}
+          {!isMobile && (
+            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 text-blue-500 text-xs font-medium bg-white/90 px-2 py-1 rounded shadow-sm">
+              Drop zone
             </div>
           )}
         </div>
       )}
       
-      <div className="relative z-10" style={{ margin: isMobile ? '16px' : '8px' }}>
+      <div className="relative z-10">
         {children}
       </div>
     </div>

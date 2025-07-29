@@ -24,10 +24,7 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
     isDragging,
   } = useSortable({ id: task.id })
   
-  const [showContextMenu, setShowContextMenu] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null)
-  const [longPressActive, setLongPressActive] = useState(false)
   
   useEffect(() => {
     const checkMobile = () => {
@@ -38,90 +35,23 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
   
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isMobile || !onTaskMove) return
-    
-    // Store initial touch position for gesture detection
-    const touch = e.touches[0]
-    const initialY = touch.clientY
-    
-    // Only prevent default if this looks like a long press intent
-    // Allow normal scrolling to continue initially
-    
-    longPressTimer.current = setTimeout(() => {
-      setLongPressActive(true)
-      setShowContextMenu(true)
-      if ('vibrate' in navigator) {
-        navigator.vibrate(20)
-      }
-      // Now prevent scrolling since we're showing context menu
-      document.body.style.overflow = 'hidden'
-    }, 400) // Reduced from 500ms for better responsiveness
-  }
-  
-  const handleTouchMove = (e: React.TouchEvent) => {
-    // Cancel long press if user moves significantly (scrolling)
-    if (longPressTimer.current) {
-      const touch = e.touches[0]
-      const moveThreshold = 10 // pixels
-      
-      // If user moved more than threshold, they're probably scrolling
-      // (This requires storing initial position, but for simplicity we'll just cancel)
-      clearTimeout(longPressTimer.current)
-      longPressTimer.current = null
-    }
-    setLongPressActive(false)
-  }
-  
-  const handleTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current)
-      longPressTimer.current = null
-    }
-    setLongPressActive(false)
-    // Restore scrolling
-    document.body.style.overflow = ''
-  }
-  
-  const handleContextMenuMove = (newStatus: Task['status']) => {
-    if (onTaskMove) {
-      onTaskMove(task.id, newStatus)
-      if ('vibrate' in navigator) {
-        navigator.vibrate(15)
-      }
-    }
-    setShowContextMenu(false)
-    // Restore scrolling
-    document.body.style.overflow = ''
-  }
-  
-  const statusOptions = [
-    { value: 'todo', label: 'To Do', color: 'bg-red-100 text-red-800' },
-    { value: 'in-progress', label: 'In Progress', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'done', label: 'Done', color: 'bg-green-100 text-green-800' }
-  ] as const
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition: isDragging ? 'none' : 'all 250ms ease-out',
-    opacity: isDragging ? 0.4 : showContextMenu ? 0.7 : 1,
-    zIndex: isDragging ? 1000 : 'auto',
+    transition: isDragging ? 'none' : 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+    opacity: isDragging ? 0.4 : 1,
     cursor: isDragging ? 'grabbing' : 'grab',
-    touchAction: isMobile ? 'pan-y pinch-zoom' : 'manipulation',
-    WebkitTouchCallout: 'none',
-    WebkitUserSelect: 'none' as const,
-    userSelect: 'none' as const,
-    minHeight: isMobile ? '60px' : '44px',
+    touchAction: isMobile ? 'manipulation' : 'none',
+    willChange: 'transform, opacity',
   }
 
-  const mobileProps = isMobile ? {
-    onTouchStart: handleTouchStart,
-    onTouchMove: handleTouchMove,
-    onTouchEnd: handleTouchEnd,
-    onTouchCancel: handleTouchEnd,
-  } : {}
+  // Always enable drag functionality
+  const dragProps = { ...attributes, ...listeners }
   
-  const dragProps = isMobile ? {} : { ...attributes, ...listeners }
+  // Override touch handlers to not interfere with dnd-kit on mobile
+  const mobileProps = isMobile ? {
+    style: { ...style, touchAction: 'manipulation' }
+  } : {}
   
   return (
     <>
@@ -130,106 +60,40 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
         style={style}
         {...dragProps}
         {...mobileProps}
-        className={`group relative select-none transition-all duration-200 ${
+        className={`group relative select-none transition-all duration-200 ease-out ${
           isMobile 
-            ? 'cursor-pointer active:scale-[0.97] touch-manipulation'
-            : 'cursor-grab active:cursor-grabbing hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl hover:shadow-primary/10'
-        } ${longPressActive ? 'scale-[0.97] shadow-lg ring-2 ring-primary/30' : ''}`}
+            ? 'cursor-grab touch-manipulation active:scale-[0.98]'
+            : 'cursor-grab active:cursor-grabbing hover:scale-[1.02] hover:shadow-lg hover:-translate-y-1'
+        } ${isDragging ? 'scale-[0.95] rotate-1' : ''}`}
       >
-      {/* Desktop drag handle indicator */}
+      {/* Enhanced desktop drag handle indicator */}
       {!isMobile && (
-        <div className="absolute top-1/2 left-2 -translate-y-1/2 transition-all duration-300 z-10 opacity-40 group-hover:opacity-80 group-active:opacity-100">
-          <div className="flex flex-col gap-1">
-            <div className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-pulse" style={{animationDelay: '0ms'}}></div>
-            <div className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-pulse" style={{animationDelay: '200ms'}}></div>
-            <div className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-pulse" style={{animationDelay: '400ms'}}></div>
-            <div className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-pulse" style={{animationDelay: '600ms'}}></div>
+        <div className="absolute top-1/2 left-2 -translate-y-1/2 transition-all duration-300 z-10 opacity-0 group-hover:opacity-80 group-active:opacity-100">
+          <div className="flex flex-col gap-0.5 p-1 rounded bg-white/80 shadow-sm">
+            <div className="w-1 h-1 bg-gray-400 rounded-full transition-colors duration-200 group-hover:bg-blue-500"></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full transition-colors duration-200 group-hover:bg-blue-500" style={{transitionDelay: '50ms'}}></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full transition-colors duration-200 group-hover:bg-blue-500" style={{transitionDelay: '100ms'}}></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full transition-colors duration-200 group-hover:bg-blue-500" style={{transitionDelay: '150ms'}}></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full transition-colors duration-200 group-hover:bg-blue-500" style={{transitionDelay: '200ms'}}></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full transition-colors duration-200 group-hover:bg-blue-500" style={{transitionDelay: '250ms'}}></div>
           </div>
         </div>
       )}
       
-      {/* Mobile long press indicator */}
+      {/* Enhanced mobile drag indicator */}
       {isMobile && (
-        <div className={`absolute top-2 right-2 text-xs px-2 py-1 bg-muted/80 rounded-full transition-opacity duration-200 z-10 ${
-          longPressActive ? 'opacity-100' : 'opacity-0'
-        }`}>
-          Hold to move
+        <div className="absolute top-2 right-2 text-xs px-3 py-1 bg-blue-100 text-blue-600 rounded-full transition-all duration-200 z-10 opacity-70 shadow-sm border border-blue-200/50">
+          ✋ Drag
         </div>
       )}
       
-      {/* Enhanced hover glow effect */}
-      <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-primary/0 via-primary/8 to-primary/0 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none"></div>
-      
-      {/* Dragging state effects */}
-      <div className={`relative transition-all duration-300 ${
-        isDragging 
-          ? 'ring-2 ring-primary/60 ring-offset-2 ring-offset-background shadow-xl shadow-primary/20' 
-          : isMobile ? '' : 'hover:ring-1 hover:ring-primary/20 hover:ring-offset-1'
+      {/* Task card content */}
+      <div className={`relative ${
+        !isMobile ? 'group-hover:shadow-lg group-hover:ring-1 group-hover:ring-primary/20' : ''
       }`}>
         <TaskCard task={task} onDelete={onDelete} />
       </div>
     </div>
-    
-    {/* Mobile Context Menu Overlay */}
-    {showContextMenu && isMobile && (
-      <div 
-        className="fixed inset-0 bg-black/40 z-[9999] flex items-end justify-center p-0"
-        onClick={() => {
-          setShowContextMenu(false)
-          document.body.style.overflow = ''
-        }}
-        style={{ 
-          backdropFilter: 'blur(2px)',
-          WebkitBackdropFilter: 'blur(2px)',
-          touchAction: 'none' // Prevent scrolling behind modal
-        }}
-      >
-        <div 
-          className="w-full bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom-full duration-300 max-h-[70vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="p-4 border-b border-gray-100">
-            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
-            <div className="text-center">
-              <h3 className="font-semibold text-lg text-gray-900">Move Task</h3>
-              <p className="text-sm text-gray-600 mt-1 truncate px-4">{task.title}</p>
-            </div>
-          </div>
-          <div className="p-4 space-y-3">
-            {statusOptions.map((option) => (
-              <Button
-                key={option.value}
-                variant="ghost"
-                className={`w-full justify-start text-left h-14 text-base ${
-                  task.status === option.value 
-                    ? 'bg-gray-100 opacity-50 cursor-not-allowed' 
-                    : 'hover:bg-gray-50 active:bg-gray-100'
-                }`}
-                disabled={task.status === option.value}
-                onClick={() => handleContextMenuMove(option.value)}
-              >
-                <div className={`w-4 h-4 rounded-full mr-3 ${
-                  option.value === 'todo' ? 'bg-red-400' :
-                  option.value === 'in-progress' ? 'bg-yellow-400' :
-                  'bg-green-400'
-                }`} />
-                <span className="flex-1">{option.label}</span>
-                {task.status === option.value && <span className="text-xs text-gray-500">(Current)</span>}
-              </Button>
-            ))}
-          </div>
-          <div className="p-4 pt-2 border-t border-gray-100">
-            <Button 
-              variant="outline" 
-              className="w-full h-12 text-base" 
-              onClick={() => setShowContextMenu(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      </div>
-    )}
     </>
   )
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { CategoryBadge } from "@/components/CategoryBadge"
 import { Trash2 } from "lucide-react"
 import { Task } from "@/lib/supabase"
+import { useState, useEffect } from "react"
 
 // This defines what props our TaskCard component accepts
 interface TaskCardProps {
@@ -13,6 +14,17 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onDelete }: TaskCardProps) {
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   // Function to determine badge color based on priority
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -34,7 +46,19 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
   }
 
   return (
-    <Card className="w-full hover:shadow-lg transition-shadow cursor-pointer touch-manipulation">
+    <Card 
+      className={`w-full transition-shadow cursor-pointer touch-manipulation ${
+        !isMobile ? 'hover:shadow-lg' : 'mobile-no-hover-effects'
+      }`}
+      tabIndex={isMobile ? -1 : undefined}
+      style={isMobile ? {
+        WebkitTapHighlightColor: 'transparent',
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        outline: 'none'
+      } : undefined}
+    >
       <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
         <div className="flex justify-between items-start gap-2">
           <CardTitle className="text-xs sm:text-base font-semibold line-clamp-2 flex-1 leading-tight">

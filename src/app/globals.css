@@ -194,6 +194,38 @@
       min-height: 44px;
       min-width: 44px;
     }
+    
+    /* Aggressively remove all tap highlights and focus effects on touch devices */
+    *,
+    *:before,
+    *:after {
+      -webkit-tap-highlight-color: transparent !important;
+      -webkit-touch-callout: none !important;
+    }
+    
+    *:focus,
+    *:active,
+    button:focus,
+    button:active,
+    div:focus,
+    div:active {
+      outline: none !important;
+      box-shadow: none !important;
+      --tw-ring-shadow: none !important;
+      --tw-ring-offset-shadow: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    /* Remove any possible ring or border color changes on touch */
+    [data-slot="card"]:focus,
+    [data-slot="card"]:active,
+    .group:focus,
+    .group:active {
+      outline: none !important;
+      border-color: inherit !important;
+      --tw-ring-shadow: none !important;
+      --tw-ring-offset-shadow: none !important;
+    }
   }
   
   /* Mobile-optimized task cards */
@@ -261,6 +293,18 @@
       }
     }
     
+    /* Animation for mobile popup */
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    
     .animate-in {
       animation-fill-mode: both;
     }
@@ -296,6 +340,58 @@
     [data-dnd-drag-overlay] {
       transform: translateZ(0) !important;
       will-change: transform !important;
+    }
+    
+    /* Remove hover effects on mobile to prevent blue ring/line on tap */
+    .mobile-no-hover-effects,
+    .mobile-no-hover-effects * {
+      -webkit-tap-highlight-color: transparent !important;
+      -webkit-touch-callout: none !important;
+      -webkit-user-select: none !important;
+      user-select: none !important;
+    }
+    
+    .mobile-no-hover-effects:hover,
+    .mobile-no-hover-effects:focus,
+    .mobile-no-hover-effects:active,
+    .mobile-no-hover-effects:focus-visible,
+    .mobile-no-hover-effects *:hover,
+    .mobile-no-hover-effects *:focus,
+    .mobile-no-hover-effects *:active,
+    .mobile-no-hover-effects *:focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+      --tw-ring-shadow: none !important;
+      --tw-ring-offset-shadow: none !important;
+      border-color: inherit !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    /* Specifically target potential ring effects */
+    .mobile-no-hover-effects .ring,
+    .mobile-no-hover-effects .ring-1,
+    .mobile-no-hover-effects .ring-2,
+    .mobile-no-hover-effects .ring-blue-500,
+    .mobile-no-hover-effects .ring-primary {
+      --tw-ring-shadow: none !important;
+      --tw-ring-offset-shadow: none !important;
+    }
+    
+    .mobile-no-select {
+      -webkit-tap-highlight-color: transparent !important;
+      -webkit-touch-callout: none !important;
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      -webkit-appearance: none !important;
+      outline: none !important;
+    }
+    
+    .mobile-no-select:focus,
+    .mobile-no-select:active,
+    .mobile-no-select:hover {
+      outline: none !important;
+      box-shadow: none !important;
+      -webkit-tap-highlight-color: transparent !important;
     }
   }
   

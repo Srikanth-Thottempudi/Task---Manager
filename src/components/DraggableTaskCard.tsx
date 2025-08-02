@@ -28,6 +28,7 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
   const [isMobile, setIsMobile] = useState(false)
   const [showMovePopup, setShowMovePopup] = useState(false)
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
+  const [longPressCompleted, setLongPressCompleted] = useState(false)
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
   
   useEffect(() => {
@@ -39,46 +40,47 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
   
-  // Long press handlers for mobile popup
+  // Long press handlers for mobile popup - ONLY triggers on 600ms+ hold
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isMobile || !onTaskMove || isDragging) return
+    if (!isMobile || !onTaskMove || isDragging || showMovePopup) return
     
-    // Prevent text selection and context menu
-    e.preventDefault()
+    // Reset the completion flag
+    setLongPressCompleted(false)
     
+    // Don't prevent default to allow normal scrolling and tapping
     const touch = e.touches[0]
     setPopupPosition({ x: touch.clientX, y: touch.clientY })
     
+    // Set timer for long press - will be cleared if user lifts finger or moves
     const timer = setTimeout(() => {
+      // Mark that long press actually completed
+      setLongPressCompleted(true)
       // Haptic feedback
       if ('vibrate' in navigator) {
         navigator.vibrate(50)
       }
       setShowMovePopup(true)
-    }, 500) // 500ms long press
+      setLongPressTimer(null)
+    }, 600) // 600ms - requires intentional long hold
     
     setLongPressTimer(timer)
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    // Clear the timer if it's still running (meaning this was a tap, not a long press)
     if (longPressTimer) {
       clearTimeout(longPressTimer)
       setLongPressTimer(null)
-    }
-    // Allow the original touch handler to also run
-    if (listeners?.onTouchEnd) {
-      listeners.onTouchEnd(e)
+      setLongPressCompleted(false) // Ensure popup doesn't show for taps
     }
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    // Clear timer on movement - prevents popup if user scrolls
     if (longPressTimer) {
       clearTimeout(longPressTimer)
       setLongPressTimer(null)
-    }
-    // Allow the original touch handler to also run
-    if (listeners?.onTouchMove) {
-      listeners.onTouchMove(e)
+      setLongPressCompleted(false) // Ensure popup doesn't show for scrolls
     }
   }
 
@@ -100,32 +102,23 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
       }
     }
     setShowMovePopup(false)
+    setLongPressCompleted(false) // Reset the flag
   }
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
     opacity: isDragging ? 0.4 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
-    touchAction: isMobile ? 'manipulation' : 'none',
+    cursor: isDragging ? 'grabbing' : (isMobile ? 'pointer' : 'grab'),
+    touchAction: isMobile ? 'manipulation' : 'none', // Allow proper touch interactions for dragging
     willChange: 'transform, opacity',
   }
 
-  // Combine drag props with long press handlers for mobile
+  // On mobile, we'll use a wrapper to handle long-press separately from drag
   const dragProps = isMobile 
     ? { 
-        ...attributes, 
-        onTouchStart: (e: React.TouchEvent) => {
-          handleTouchStart(e)
-          if (listeners?.onTouchStart) {
-            listeners.onTouchStart(e)
-          }
-        },
-        onTouchEnd: handleTouchEnd,
-        onTouchMove: handleTouchMove,
-        onContextMenu: (e: React.MouseEvent) => {
-          e.preventDefault() // Prevent context menu on long press
-        },
+        ...attributes,
+        // Don't add touch listeners directly to drag element on mobile
       }
     : { ...attributes, ...listeners }
   
@@ -136,7 +129,7 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
   
   // Popup component for mobile task movement
   const MovePopup = () => {
-    if (!showMovePopup || !isMobile) return null
+    if (!showMovePopup || !isMobile || !longPressCompleted) return null
 
     const statusOptions = [
       { value: 'todo', label: 'To Do', color: 'bg-red-100 text-red-800' },
@@ -178,7 +171,10 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
           </div>
           
           <Button
-            onClick={() => setShowMovePopup(false)}
+            onClick={() => {
+              setShowMovePopup(false)
+              setLongPressCompleted(false) // Reset the flag
+            }}
             className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200 py-3 rounded-xl transition-all duration-200 active:scale-[0.98]"
             variant="ghost"
           >
@@ -190,20 +186,43 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
     )
   }
 
+  const MobileWrapper = ({ children }: { children: React.ReactNode }) => {
+    if (!isMobile) return <>{children}</>
+    
+    return (
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+        onContextMenu={(e) => e.preventDefault()}
+        onClick={(e) => {
+          // Prevent any click handlers from triggering on mobile
+          e.preventDefault()
+          e.stopPropagation()
+        }}
+        className="relative"
+      >
+        {children}
+      </div>
+    )
+  }
+
   return (
     <>
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...dragProps}
-        {...mobileProps}
-        tabIndex={isMobile ? -1 : undefined}
-        className={`group relative select-none transition-all duration-200 ease-out ${
-          isMobile 
-            ? 'cursor-grab touch-manipulation active:scale-[0.98] mobile-no-select mobile-no-hover-effects'
-            : 'cursor-grab active:cursor-grabbing hover:scale-[1.02] hover:shadow-lg hover:-translate-y-1'
-        } ${isDragging ? 'scale-[0.95] rotate-1' : ''}`}
-      >
+      <MobileWrapper>
+        <div
+          ref={setNodeRef}
+          style={style}
+          {...dragProps}
+          {...(isMobile ? {} : listeners)} // Only add listeners on desktop
+          {...mobileProps}
+          tabIndex={isMobile ? -1 : undefined}
+          className={`group relative select-none transition-all duration-200 ease-out ${
+            isMobile 
+              ? 'cursor-pointer touch-manipulation mobile-no-select mobile-no-hover-effects'
+              : 'cursor-grab active:cursor-grabbing hover:scale-[1.02] hover:shadow-lg hover:-translate-y-1'
+          } ${isDragging ? 'scale-[0.95] rotate-1' : ''}`}
+        >
       {/* Enhanced desktop drag handle indicator */}
       {!isMobile && (
         <div className="absolute top-1/2 left-2 -translate-y-1/2 transition-all duration-300 z-10 opacity-0 group-hover:opacity-80 group-active:opacity-100">
@@ -218,23 +237,18 @@ export function DraggableTaskCard({ task, onDelete, onTaskMove }: DraggableTaskC
         </div>
       )}
       
-      {/* Enhanced mobile drag indicator */}
-      {isMobile && (
-        <div className="absolute top-2 right-2 text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full transition-all duration-200 z-10 opacity-70 shadow-sm border border-blue-200/50">
-          Hold to move
-        </div>
-      )}
       
-      {/* Task card content */}
-      <div className={`relative ${
-        !isMobile ? 'group-hover:shadow-lg group-hover:ring-1 group-hover:ring-primary/20' : 'mobile-no-hover-effects'
-      }`}>
-        <TaskCard task={task} onDelete={onDelete} />
-      </div>
-    </div>
+        {/* Task card content */}
+        <div className={`relative ${
+          !isMobile ? 'group-hover:shadow-lg group-hover:ring-1 group-hover:ring-primary/20' : 'mobile-no-hover-effects'
+        }`}>
+          <TaskCard task={task} onDelete={onDelete} />
+        </div>
+        </div>
+      </MobileWrapper>
     
-    {/* Mobile move popup */}
-    <MovePopup />
+      {/* Mobile move popup */}
+      <MovePopup />
     </>
   )
 }

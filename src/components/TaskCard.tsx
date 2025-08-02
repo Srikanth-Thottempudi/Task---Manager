@@ -47,8 +47,8 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
 
   return (
     <Card 
-      className={`w-full transition-shadow cursor-pointer touch-manipulation ${
-        !isMobile ? 'hover:shadow-lg' : 'mobile-no-hover-effects'
+      className={`w-full transition-shadow touch-manipulation ${
+        !isMobile ? 'hover:shadow-lg cursor-pointer' : 'mobile-no-hover-effects cursor-default'
       }`}
       tabIndex={isMobile ? -1 : undefined}
       style={isMobile ? {

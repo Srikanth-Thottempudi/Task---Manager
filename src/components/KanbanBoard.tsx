@@ -115,19 +115,20 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
     }
   }, [])
   
-  // Enhanced drag sensors for desktop and mobile
+  // Enhanced drag sensors - disable touch sensor on mobile for now
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 1, // Very responsive
+        distance: 5, // Reasonable distance to prevent accidental drags on desktop
       },
     }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 50, // Quick response on mobile
-        tolerance: 5,
-      },
-    }),
+    // Disable TouchSensor for mobile to prevent drag activation during long press
+    // useSensor(TouchSensor, {
+    //   activationConstraint: {
+    //     delay: 100,
+    //     tolerance: 5,
+    //   },
+    // }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -380,18 +381,15 @@ export function KanbanBoard({ tasks, filteredTasks, onTaskMove, onTaskReorder, o
       >
         {activeTask ? (
           <div 
-            className="shadow-2xl bg-white rounded-xl overflow-hidden ring-2 ring-blue-400/40 ring-offset-2 ring-offset-white/50"
+            className="shadow-lg bg-white rounded-xl overflow-hidden"
             style={{
-              transform: 'rotate(1deg) scale(1.03)',
+              transform: 'rotate(1deg) scale(1.02)',
               transformOrigin: 'center',
-              opacity: 0.96,
-              backdropFilter: 'blur(1px)',
+              opacity: 0.9,
               transition: 'all 0.1s ease-out',
             }}
           >
-            <div className="bg-gradient-to-br from-blue-50/50 to-transparent p-0.5">
-              <TaskCard task={activeTask} />
-            </div>
+            <TaskCard task={activeTask} />
           </div>
         ) : null}
       </DragOverlay>
